@@ -14,11 +14,21 @@ type Monster = {
 };
 
 // カードの型定義
-type Card = {
+type attackCard = {
   id: number; // 一意のID
+  type: "attack"; // タイプ（攻撃カード）
   name: string; // カード名
   power: number; // 攻撃力
 };
+type drawCard = {
+  id: number; // 一意のID
+  type: "draw"; // タイプ（ドローカード）
+  name: string; // カード名
+  draw: number; // ドローする枚数
+};
+
+// カードの共通型
+type Card = attackCard | drawCard;
 
 // モンスターの初期データ
 const initialMonsters: Monster[] = [
@@ -27,32 +37,48 @@ const initialMonsters: Monster[] = [
   { id: 3, name: "フシギバナ", hp: 60, maxHp: 60 },
 ];
 
-// デッキに含まれるカードの初期データ
-const seigi: Card[] = [
-  { id: 1, name: "フシギダネ", power: 10 },
-  { id: 2, name: "フシギソウ", power: 20 },
-  { id: 3, name: "フシギバナ", power: 30 },
-  { id: 4, name: "フシギダネ", power: 10 },
-  { id: 5, name: "フシギソウ", power: 20 },
-  { id: 6, name: "フシギバナ", power: 30 },
-  { id: 7, name: "フシギダネ", power: 10 },
-  { id: 8, name: "フシギソウ", power: 20 },
-  { id: 9, name: "フシギバナ", power: 30 },
-  { id: 10, name: "フシギダネ", power: 10 },
-  { id: 11, name: "フシギソウ", power: 20 },
-  { id: 12, name: "フシギバナ", power: 30 },
+// デッキに含まれるアタックカードとドローカードの初期データ
+const seigi: attackCard[] = [
+  { id: 1, type: "attack", name: "フシギダネ", power: 10 },
+  { id: 2, type: "attack", name: "フシギソウ", power: 20 },
+  { id: 3, type: "attack", name: "フシギバナ", power: 30 },
+  { id: 4, type: "attack", name: "フシギダネ", power: 10 },
+  { id: 5, type: "attack", name: "フシギソウ", power: 20 },
+  { id: 6, type: "attack", name: "フシギバナ", power: 30 },
+  { id: 7, type: "attack", name: "フシギダネ", power: 10 },
+  { id: 8, type: "attack", name: "フシギソウ", power: 20 },
+  { id: 9, type: "attack", name: "フシギバナ", power: 30 },
 ];
+
+const drewseigi: drawCard[] = [
+  { id: 10, type: "draw", name: "フシギダネ", draw: 1 },
+  { id: 11, type: "draw", name: "フシギソウ", draw: 1 },
+  { id: 12, type: "draw", name: "フシギバナ", draw: 1 },
+  { id: 13, type: "draw", name: "フシギダネ", draw: 1 },
+  { id: 14, type: "draw", name: "フシギソウ", draw: 1 },
+  { id: 15, type: "draw", name: "フシギバナ", draw: 1 },
+];
+
+// シャッフル関数
+const shuffleDeck = (deck: Card[]) => {
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]]; // 要素の入れ替え
+  }
+  return deck;
+};
 
 // メインコンポーネント
 export default function Home() {
   const [monsters, setMonsters] = useState<Monster[]>(initialMonsters); // モンスター状態管理
-  const [deck, setDeck] = useState<Card[]>(seigi); // デッキ状態管理
+  const [deck, setDeck] = useState<Card[]>(shuffleDeck([...seigi, ...drewseigi])); // シャッフルしたデッキ
   const [hand, setHand] = useState<Card[]>([]); // 手札状態管理
 
   // カードを引く関数
-  const drawCards = () => {
-    // 最大3枚または手札が5枚になるまで引ける
-    const cardsToDraw = Math.min(3, 5 - hand.length, deck.length);
+  const drawCards = (drawAmount: number) => {
+    const availableSpace = 5 - hand.length; // 手札に追加できるカード枚数
+    const cardsToDraw = Math.min(drawAmount, availableSpace, deck.length); // 引くカード数を制限
+
     if (cardsToDraw > 0) {
       setHand([...hand, ...deck.slice(0, cardsToDraw)]); // 手札に追加
       setDeck(deck.slice(cardsToDraw)); // デッキから引いた分を削除
@@ -85,19 +111,20 @@ export default function Home() {
               key={monster.id}
               monster={monster}
               onDamage={(power) => handleDamage(monster.id, power)}
+              drawCards={drawCards} // drawCards 関数を渡す
             />
           ))}
         </div>
 
         {/* デッキエリア */}
-        <div className="deck" onClick={drawCards}>
+        <div className="deck" onClick={() => drawCards(3)}>
           <p>Deck</p>
         </div>
 
         {/* 手札エリア */}
         <div className="hand">
           {hand.map((card) => (
-            <DraggableCard key={card.id} card={card} onDrop={handleDrop} />
+            <DraggableCard key={card.id} card={card} onDrop={handleDrop} drawCards={drawCards} />
           ))}
         </div>
 
@@ -145,10 +172,25 @@ export default function Home() {
 }
 
 // モンスターカードコンポーネント
-function MonsterCard({ monster, onDamage }: { monster: Monster; onDamage: (power: number) => void }) {
+function MonsterCard({
+  monster,
+  onDamage,
+  drawCards, // drawCards を受け取る
+}: {
+  monster: Monster;
+  onDamage: (power: number) => void;
+  drawCards: (drawAmount: number) => void; // drawCards を関数として受け取る
+}) {
   const [, drop] = useDrop({
     accept: "CARD", // ドロップ可能なアイテムタイプ
-    drop: (item: Card) => onDamage(item.power), // ドロップ時の処理
+    drop: (item: Card) => {
+      if (item.type === "attack") {
+        onDamage(item.power); // 攻撃カードの処理
+      } else if (item.type === "draw") {
+        // ドローカードを処理
+        drawCards(item.draw); // ドローする枚数分カードを引く
+      }
+    },
   });
 
   return (
@@ -204,7 +246,7 @@ function MonsterCard({ monster, onDamage }: { monster: Monster; onDamage: (power
 }
 
 // ドラッグ可能なカードコンポーネント
-function DraggableCard({ card, onDrop }: { card: Card; onDrop: (cardId: number) => void }) {
+function DraggableCard({ card, onDrop, drawCards }: { card: Card; onDrop: (cardId: number) => void; drawCards: (drawAmount: number) => void }) {
   const [, drag] = useDrag({
     type: "CARD", // ドラッグ可能なアイテムタイプ
     item: card, // ドラッグするデータ
@@ -224,7 +266,9 @@ function DraggableCard({ card, onDrop }: { card: Card; onDrop: (cardId: number) 
         alt={card.name}
       />
       <h3>{card.name}</h3>
-      <p>Power: {card.power}</p>
+      <p>
+        {card.type === "attack" ? `Power: ${card.power}` : `Draw: ${card.draw}`}
+      </p>
 
       <style jsx>{`
         .card {
