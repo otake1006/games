@@ -1,4 +1,4 @@
-"use client"; // Next.jsのクライアントサイドで実行されるコードであることを明示
+"use client";
 
 import { useState } from "react";
 import Image from "next/image";
@@ -7,188 +7,318 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 
 // モンスターの型定義
 type Monster = {
-  id: number; // 一意のID
-  name: string; // モンスターの名前
-  hp: number; // 現在のHP
-  maxHp: number; // 最大HP
+  id: number;
+  name: string;
+  hp: number;
+  maxHp: number;
 };
 
-// カードの型定義
+// カードの種類を定義
 type attackCard = {
-  id: number; // 一意のID
-  type: "attack"; // タイプ（攻撃カード）
-  name: string; // カード名
-  power: number; // 攻撃力
+  id: number;
+  type: "attack";
+  name: string;
+  power: number;
 };
+
 type drawCard = {
-  id: number; // 一意のID
-  type: "draw"; // タイプ（ドローカード）
-  name: string; // カード名
-  draw: number; // ドローする枚数
+  id: number;
+  type: "draw";
+  name: string;
+  draw: number;
 };
 
-// カードの共通型
-type Card = attackCard | drawCard;
+type healCard = {
+  id: number;
+  type: "heal";
+  name: string;
+  heal: number;
+};
 
-// モンスターの初期データ
+type Card = attackCard | drawCard | healCard;
+
+// 初期のモンスター情報
 const initialMonsters: Monster[] = [
   { id: 1, name: "フシギダネ", hp: 100, maxHp: 100 },
   { id: 2, name: "フシギソウ", hp: 80, maxHp: 80 },
   { id: 3, name: "フシギバナ", hp: 60, maxHp: 60 },
 ];
 
-// デッキに含まれるアタックカードとドローカードの初期データ
+// カードデッキの定義
 const seigi: attackCard[] = [
   { id: 1, type: "attack", name: "フシギダネ", power: 10 },
   { id: 2, type: "attack", name: "フシギソウ", power: 20 },
   { id: 3, type: "attack", name: "フシギバナ", power: 30 },
-  { id: 4, type: "attack", name: "フシギダネ", power: 10 },
-  { id: 5, type: "attack", name: "フシギソウ", power: 20 },
-  { id: 6, type: "attack", name: "フシギバナ", power: 30 },
-  { id: 7, type: "attack", name: "フシギダネ", power: 10 },
-  { id: 8, type: "attack", name: "フシギソウ", power: 20 },
-  { id: 9, type: "attack", name: "フシギバナ", power: 30 },
 ];
 
 const drewseigi: drawCard[] = [
   { id: 10, type: "draw", name: "フシギダネ", draw: 1 },
   { id: 11, type: "draw", name: "フシギソウ", draw: 1 },
   { id: 12, type: "draw", name: "フシギバナ", draw: 1 },
-  { id: 13, type: "draw", name: "フシギダネ", draw: 1 },
-  { id: 14, type: "draw", name: "フシギソウ", draw: 1 },
-  { id: 15, type: "draw", name: "フシギバナ", draw: 1 },
 ];
 
-// シャッフル関数
+const healseigi: healCard[] = [
+  { id: 16, type: "heal", name: "フシギダネ", heal: 10 },
+  { id: 17, type: "heal", name: "フシギソウ", heal: 10 },
+  { id: 18, type: "heal", name: "フシギバナ", heal: 10 },
+];
+
+// デッキをシャッフルする関数
 const shuffleDeck = (deck: Card[]) => {
   for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [deck[i], deck[j]] = [deck[j], deck[i]]; // 要素の入れ替え
+    const j = Math.floor(Math.random() * (i + 1)); // ランダムなインデックスを生成
+    [deck[i], deck[j]] = [deck[j], deck[i]]; // 要素を入れ替え
   }
-  return deck;
+  return deck; // シャッフル後のデッキを返す
 };
 
 // メインコンポーネント
 export default function Home() {
-  const [monsters, setMonsters] = useState<Monster[]>(initialMonsters); // モンスター状態管理
-  const [deck, setDeck] = useState<Card[]>(shuffleDeck([...seigi, ...drewseigi])); // シャッフルしたデッキ
-  const [hand, setHand] = useState<Card[]>([]); // 手札状態管理
+  const [isBattle, setIsBattle] = useState(false); // 戦闘画面かどうか
+  const [monsters, setMonsters] = useState<Monster[]>(initialMonsters); // モンスター情報
+  const [playerHp, setPlayerHp] = useState(100); // プレイヤーのHP
+  const [deck, setDeck] = useState<Card[]>(shuffleDeck([...seigi, ...drewseigi, ...healseigi])); // カードデッキ
+  const [hand, setHand] = useState<Card[]>([]); // プレイヤーの手札
 
-  // カードを引く関数
+  // 戦闘状態を初期化する関数
+  const resetBattleState = () => {
+    setMonsters(initialMonsters); // モンスターを初期化
+    setPlayerHp(100); // プレイヤーHPを最大値に戻す
+    setDeck(shuffleDeck([...seigi, ...drewseigi, ...healseigi])); // デッキを再シャッフル
+    setHand([]); // 手札を空にする
+  };
+
+  // カードを引く関数（最大5枚まで）
   const drawCards = (drawAmount: number) => {
-    const availableSpace = 5 - hand.length; // 手札に追加できるカード枚数
-    const cardsToDraw = Math.min(drawAmount, availableSpace, deck.length); // 引くカード数を制限
-
+    const availableSpace = 5 - hand.length; // 手札に空きがある枚数を計算
+    const cardsToDraw = Math.min(drawAmount, availableSpace, deck.length); // 引けるカード数を決定
     if (cardsToDraw > 0) {
-      setHand([...hand, ...deck.slice(0, cardsToDraw)]); // 手札に追加
-      setDeck(deck.slice(cardsToDraw)); // デッキから引いた分を削除
+      setHand([...hand, ...deck.slice(0, cardsToDraw)]); // 手札にカードを追加
+      setDeck(deck.slice(cardsToDraw)); // デッキから引いたカードを削除
     }
   };
 
-  // ダメージ処理関数
+  // モンスターにダメージを与える関数
   const handleDamage = (monsterId: number, power: number) => {
     setMonsters((prevMonsters) =>
       prevMonsters.map((monster) =>
         monster.id === monsterId
-          ? { ...monster, hp: Math.max(monster.hp - power, 0) } // ダメージ適用
+          ? { ...monster, hp: Math.max(monster.hp - power, 0) } // HPが0未満にならないようにする
           : monster
       )
     );
   };
 
-  // ドロップ処理関数（カードを使用後に手札から削除）
+  // プレイヤーを回復させる関数
+  const handleHeal = (healAmount: number) => {
+    if (playerHp < 100) {
+      setPlayerHp(Math.min(playerHp + healAmount, 100)); // プレイヤーHPが最大HPを超えないようにする
+    }
+  };
+
+  // カードがドロップされた時の処理
   const handleDrop = (cardId: number) => {
-    setHand((prevHand) => prevHand.filter((card) => card.id !== cardId));
+    setHand((prevHand) => prevHand.filter((card) => card.id !== cardId)); // 手札からカードを削除
   };
 
   return (
     <DndProvider backend={HTML5Backend}>
       <main>
-        {/* モンスター一覧 */}
-        <div className="monster-container">
-          {monsters.map((monster) => (
-            <MonsterCard
-              key={monster.id}
-              monster={monster}
-              onDamage={(power) => handleDamage(monster.id, power)}
-              drawCards={drawCards} // drawCards 関数を渡す
-            />
-          ))}
-        </div>
+        {isBattle ? (
+          // 戦闘画面
+          <>
+            <div className="monster-container">
+              {monsters.map((monster) => (
+                <MonsterCard
+                  key={monster.id}
+                  monster={monster}
+                  onDamage={(power) => handleDamage(monster.id, power)} // モンスターにダメージを与える関数
+                  drawCards={drawCards} // カードを引く関数
+                  handleHeal={handleHeal} // 回復カードを処理する関数
+                />
+              ))}
+            </div>
 
-        {/* デッキエリア */}
-        <div className="deck" onClick={() => drawCards(3)}>
-          <p>Deck</p>
-        </div>
+            <div className="deck" onClick={() => drawCards(3)}>
+              <p>Deck</p>
+            </div>
 
-        {/* 手札エリア */}
-        <div className="hand">
-          {hand.map((card) => (
-            <DraggableCard key={card.id} card={card} onDrop={handleDrop} drawCards={drawCards} />
-          ))}
-        </div>
+            <div className="hand">
+              {hand.map((card) => (
+                <DraggableCard
+                  key={card.id}
+                  card={card}
+                  onDrop={handleDrop}
+                  drawCards={drawCards}
+                />
+              ))}
+            </div>
 
-        <style jsx>{`
+            <div className="player-hp-container">
+              <h2>Player HP: {playerHp} / 100</h2>
+              <div className="hp-bar">
+                <div
+                  className="hp-bar-inner"
+                  style={{
+                    width: `${(playerHp / 100) * 100}%`,
+                  }}
+                ></div>
+              </div>
+            </div>
+            <div className="button-container">
+            <button className="close-btn" onClick={() => setIsBattle(false)}>
+              Close
+            </button>
+            <button
+              className="back-btn"
+              onClick={() => {
+                resetBattleState(); // 戦闘状態をリセット
+                setIsBattle(false); // 戦闘を終了してタイトル画面に戻る
+              }}
+            >
+              Back
+            </button>
+            </div>
+          </>
+        ) : (
+          // タイトル画面
+          <div className="title-screen">
+            <h1>モンスターと戦うゲーム</h1>
+            <button className="start-btn" onClick={() => setIsBattle(true)}>
+              Start
+            </button>
+          </div>
+        )}
+      </main>
+
+      <style jsx>
+        {`
+          main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            justify-content: center;
+            background-color: #f0f0f0;
+          }
+
+          .title-screen {
+            text-align: center;
+          }
+
+          .start-btn {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+          }
+
           .monster-container {
             display: flex;
-            flex-direction: row;
-            align-items: center;
+            gap: 20px;
             margin-bottom: 20px;
           }
 
           .deck {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
+            background-color: #ccc;
             width: 100px;
             height: 140px;
-            background-color: #ccc;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
             border: 2px solid black;
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
           }
 
           .hand {
             display: flex;
-            flex-direction: row;
             gap: 10px;
             margin-top: 20px;
           }
 
-          main {
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-          }
-        `}</style>
-      </main>
+          .player-hp-container {
+             position: fixed;
+             bottom: 10px; /* 画面の下部に配置 */
+             left: 50%; /* 横中央 */
+             transform: translateX(-50%); /* 中央揃え */
+             width: 300px; /* 必要に応じて幅を調整 */
+             text-align: center;
+             background-color: #fff; /* 背景色を追加して視認性を向上 */
+             border: 1px solid #ccc; /* 境界線を追加 */
+             border-radius: 10px; /* 角丸 */
+             padding: 10px; /* 内側余白 */
+             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 少し影をつける */
+           }
+
+          .hp-bar {
+           width: 100%; /* 親要素に合わせる */
+           height: 20px;
+           background-color: #ccc;
+           border-radius: 10px;
+           margin-top: 10px;
+           }
+
+          .hp-bar-inner {
+           height: 100%;
+           background-color: #4caf50;
+          transition: width 0.3s ease;
+           }
+
+               .button-container {
+                  position: fixed;
+                  top: 10px; /* 画面の上部 */
+                  right: 10px; /* 画面の右側 */
+                  display: flex;
+                  gap: 10px; /* ボタンの間隔 */
+                }
+
+                .close-btn,
+                .back-btn {
+                  padding: 10px;
+                  background-color: red;
+                  color: white;
+                  border: none;
+                  border-radius: 5px;
+                  cursor: pointer;
+                }
+
+                .close-btn:hover,
+                .back-btn:hover {
+                  background-color: darkred;
+                }
+        `}
+      </style>
     </DndProvider>
   );
 }
 
-// モンスターカードコンポーネント
+// モンスターカードのコンポーネント
 function MonsterCard({
   monster,
   onDamage,
-  drawCards, // drawCards を受け取る
+  drawCards,
+  handleHeal,
 }: {
   monster: Monster;
   onDamage: (power: number) => void;
-  drawCards: (drawAmount: number) => void; // drawCards を関数として受け取る
+  drawCards: (drawAmount: number) => void;
+  handleHeal: (healAmount: number) => void;
 }) {
   const [, drop] = useDrop({
-    accept: "CARD", // ドロップ可能なアイテムタイプ
+    accept: "CARD", // ドロップできるカードのタイプを指定
     drop: (item: Card) => {
       if (item.type === "attack") {
-        onDamage(item.power); // 攻撃カードの処理
+        onDamage(item.power);
       } else if (item.type === "draw") {
-        // ドローカードを処理
-        drawCards(item.draw); // ドローする枚数分カードを引く
+        drawCards(item.draw);
+      } else if (item.type === "heal") {
+        handleHeal(item.heal);
       }
     },
   });
@@ -196,7 +326,7 @@ function MonsterCard({
   return (
     <div ref={drop} className="monster">
       <Image
-        src={`/images/${monster.id}.png`} // 画像パス
+        src={`/images/${monster.id}.png`}
         width={80}
         height={80}
         alt={monster.name}
@@ -209,50 +339,58 @@ function MonsterCard({
         <div
           className="hp-bar-inner"
           style={{
-            transform: `scaleX(${monster.hp / monster.maxHp})`, // HPバーのスケール
+            transform: `scaleX(${monster.hp / monster.maxHp})`,
           }}
         ></div>
       </div>
 
-      <style jsx>{`
-        .monster {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          margin: 10px;
-        }
+      <style jsx>
+        {`
+          .monster {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin: 10px;
+          }
 
-        .hp-bar {
-          width: 100px;
-          height: 10px;
-          background-color: #ccc;
-          border-radius: 5px;
-          overflow: hidden;
-          margin-top: 5px;
-          position: relative;
-        }
+          .hp-bar {
+            width: 100px;
+            height: 10px;
+            background-color: #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+          }
 
-        .hp-bar-inner {
-          height: 100%;
-          background-color: #4caf50;
-          transform-origin: left center;
-          transition: transform 0.3s ease;
-          width: 100%;
-        }
-      `}</style>
+          .hp-bar-inner {
+            height: 100%;
+            background-color: #4caf50;
+            transform-origin: left center;
+            transition: transform 0.3s ease;
+          }
+        `}
+      </style>
     </div>
   );
 }
 
 // ドラッグ可能なカードコンポーネント
-function DraggableCard({ card, onDrop, drawCards }: { card: Card; onDrop: (cardId: number) => void; drawCards: (drawAmount: number) => void }) {
+function DraggableCard({
+  card,
+  onDrop,
+  drawCards,
+}: {
+  card: Card;
+  onDrop: (cardId: number) => void;
+  drawCards: (drawAmount: number) => void;
+}) {
   const [, drag] = useDrag({
-    type: "CARD", // ドラッグ可能なアイテムタイプ
-    item: card, // ドラッグするデータ
+    type: "CARD", 
+    item: card,
     end: (item, monitor) => {
       if (monitor.didDrop()) {
-        onDrop(item.id); // ドロップ後の処理
+        onDrop(item.id);
       }
     },
   });
@@ -260,27 +398,33 @@ function DraggableCard({ card, onDrop, drawCards }: { card: Card; onDrop: (cardI
   return (
     <div ref={drag} className="card">
       <Image
-        src={`/images/${card.id}.png`} // 画像パス
+        src={`/images/${card.id}.png`}
         width={80}
         height={80}
         alt={card.name}
       />
       <h3>{card.name}</h3>
       <p>
-        {card.type === "attack" ? `Power: ${card.power}` : `Draw: ${card.draw}`}
+        {card.type === "attack"
+          ? `Power: ${card.power}`
+          : card.type === "draw"
+          ? `Draw: ${card.draw}`
+          : `Heal: ${card.heal}`}
       </p>
 
-      <style jsx>{`
-        .card {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 10px;
-          border: 1px solid #ccc;
-          background-color: white;
-          cursor: grab;
-        }
-      `}</style>
+      <style jsx>
+        {`
+          .card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: white;
+            cursor: grab;
+          }
+        `}
+      </style>
     </div>
   );
 }
