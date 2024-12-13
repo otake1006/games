@@ -1,0 +1,114 @@
+/* styles.css */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+  }
+  
+  .main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  
+  .title-screen {
+    text-align: center;
+  }
+  
+  .start-btn,
+  .close-btn,
+  .back-btn {
+    margin: 10px;
+    padding: 10px 20px;
+    font-size: 1.2em;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .start-btn {
+    background-color: #28a745;
+    color: white;
+  }
+  
+  .close-btn {
+    background-color: #ffc107;
+    color: black;
+  }
+  
+  .back-btn {
+    background-color: #dc3545;
+    color: white;
+  }
+  
+  .monster-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .monster {
+    text-align: center;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: white;
+  }
+  
+  .hp-bar {
+    width: 100%;
+    height: 10px;
+    background-color: #ddd;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  
+  .hp-bar-inner {
+    height: 100%;
+    background-color: #28a745;
+    transform-origin: left center;
+  }
+  
+  .deck {
+    cursor: pointer;
+    padding: 10px;
+    margin: 10px;
+    border: 1px solid #ccc;
+    background-color: white;
+    text-align: center;
+  }
+  
+  .hand {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  .card {
+    text-align: center;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background-color: white;
+    cursor: grab;
+  }
+  
+  .card h3 {
+    margin: 5px 0;
+  }
+  
+  .player-hp-container {
+    text-align: center;
+    margin: 20px 0;
+  }
+  
+  .button-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  

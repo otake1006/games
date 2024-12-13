@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import "./styles.css"; // スタイルをインポート
 
 // モンスターの型定義
 type Monster = {
@@ -166,18 +167,18 @@ export default function Home() {
               </div>
             </div>
             <div className="button-container">
-            <button className="close-btn" onClick={() => setIsBattle(false)}>
-              Close
-            </button>
-            <button
-              className="back-btn"
-              onClick={() => {
-                resetBattleState(); // 戦闘状態をリセット
-                setIsBattle(false); // 戦闘を終了してタイトル画面に戻る
-              }}
-            >
-              Back
-            </button>
+              <button className="close-btn" onClick={() => setIsBattle(false)}>
+                Close
+              </button>
+              <button
+                className="back-btn"
+                onClick={() => {
+                  resetBattleState(); // 戦闘状態をリセット
+                  setIsBattle(false); // 戦闘を終了してタイトル画面に戻る
+                }}
+              >
+                Back
+              </button>
             </div>
           </>
         ) : (
@@ -190,110 +191,6 @@ export default function Home() {
           </div>
         )}
       </main>
-
-      <style jsx>
-        {`
-          main {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            justify-content: center;
-            background-color: #f0f0f0;
-          }
-
-          .title-screen {
-            text-align: center;
-          }
-
-          .start-btn {
-            padding: 10px 20px;
-            font-size: 18px;
-            cursor: pointer;
-            background-color: #4caf50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-          }
-
-          .monster-container {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-          }
-
-          .deck {
-            background-color: #ccc;
-            width: 100px;
-            height: 140px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            border: 2px solid black;
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-          }
-
-          .hand {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-          }
-
-          .player-hp-container {
-             position: fixed;
-             bottom: 10px; /* 画面の下部に配置 */
-             left: 50%; /* 横中央 */
-             transform: translateX(-50%); /* 中央揃え */
-             width: 300px; /* 必要に応じて幅を調整 */
-             text-align: center;
-             background-color: #fff; /* 背景色を追加して視認性を向上 */
-             border: 1px solid #ccc; /* 境界線を追加 */
-             border-radius: 10px; /* 角丸 */
-             padding: 10px; /* 内側余白 */
-             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 少し影をつける */
-           }
-
-          .hp-bar {
-           width: 100%; /* 親要素に合わせる */
-           height: 20px;
-           background-color: #ccc;
-           border-radius: 10px;
-           margin-top: 10px;
-           }
-
-          .hp-bar-inner {
-           height: 100%;
-           background-color: #4caf50;
-          transition: width 0.3s ease;
-           }
-
-               .button-container {
-                  position: fixed;
-                  top: 10px; /* 画面の上部 */
-                  right: 10px; /* 画面の右側 */
-                  display: flex;
-                  gap: 10px; /* ボタンの間隔 */
-                }
-
-                .close-btn,
-                .back-btn {
-                  padding: 10px;
-                  background-color: red;
-                  color: white;
-                  border: none;
-                  border-radius: 5px;
-                  cursor: pointer;
-                }
-
-                .close-btn:hover,
-                .back-btn:hover {
-                  background-color: darkred;
-                }
-        `}
-      </style>
     </DndProvider>
   );
 }
@@ -343,34 +240,6 @@ function MonsterCard({
           }}
         ></div>
       </div>
-
-      <style jsx>
-        {`
-          .monster {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            margin: 10px;
-          }
-
-          .hp-bar {
-            width: 100px;
-            height: 10px;
-            background-color: #ccc;
-            border-radius: 5px;
-            overflow: hidden;
-            margin-top: 5px;
-          }
-
-          .hp-bar-inner {
-            height: 100%;
-            background-color: #4caf50;
-            transform-origin: left center;
-            transition: transform 0.3s ease;
-          }
-        `}
-      </style>
     </div>
   );
 }
@@ -386,7 +255,7 @@ function DraggableCard({
   drawCards: (drawAmount: number) => void;
 }) {
   const [, drag] = useDrag({
-    type: "CARD", 
+    type: "CARD",
     item: card,
     end: (item, monitor) => {
       if (monitor.didDrop()) {
@@ -408,23 +277,10 @@ function DraggableCard({
         {card.type === "attack"
           ? `Power: ${card.power}`
           : card.type === "draw"
-          ? `Draw: ${card.draw}`
-          : `Heal: ${card.heal}`}
+            ? `Draw: ${card.draw}`
+            : `Heal: ${card.heal}`}
       </p>
 
-      <style jsx>
-        {`
-          .card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 10px;
-            border: 1px solid #ccc;
-            background-color: white;
-            cursor: grab;
-          }
-        `}
-      </style>
     </div>
   );
 }
