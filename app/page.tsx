@@ -1,3 +1,5 @@
+// page.tsx
+
 "use client";
 
 import { useState } from "react";
@@ -277,10 +279,9 @@ function DraggableCard({
         {card.type === "attack"
           ? `Power: ${card.power}`
           : card.type === "draw"
-            ? `Draw: ${card.draw}`
-            : `Heal: ${card.heal}`}
+          ? `Draw: ${card.draw}`
+          : `Heal: ${card.heal}`}
       </p>
-
     </div>
   );
 }
